@@ -107,7 +107,6 @@ function soundAllowed(stream) {
   let frequencyArray = new Uint8Array(analyser.frequencyBinCount),
       maxIndex = frequencyArray.length; //Math.min(frequencyArray.length, 12 * numOctaves * 2);
   function doDraw() {
-    console.log('stopLoop:', stopLoop)
     if (stopLoop)
       return
     requestAnimationFrame(doDraw);
