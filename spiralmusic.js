@@ -1,6 +1,5 @@
 let radius = 250,
     halfway = radius / 2,
-    spiralScale = 0.7,
     twoPI = 2 * Math.PI,
     angStep = twoPI / 360,
     notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
@@ -8,14 +7,14 @@ let radius = 250,
     topNote = [0, 5, 523.25], // C5
     freqScale = 1 + Math.log(2) / 12, // about 1.05776
     numOctaves = 5, // both above and below
+    spiralScale = halfway / numOctaves,
     canvas = document.getElementById('canvas'),
     ctx = canvas.getContext('2d'),
     originX = canvas.width / 2,
     originY = canvas.height / 2;
 
 function angToCoords(ang) {
-  let displacement = halfway * (1 - Math.pow(spiralScale, Math.abs(ang) / twoPI)),
-      rad = halfway + Math.sign(ang) * displacement,
+  let rad = halfway + spiralScale * ang / twoPI,
       x = rad * Math.cos(ang + twoPI / 4),
       y = rad * Math.sin(ang + twoPI / 4);
   return [x, y];
