@@ -7,13 +7,13 @@ class Move {
     this.options = options || {};
 
     // -1 for "as far as possible" (e.g. queen) and 1 for "one step" (e.g. king)
-    this.momentum = options.momentum || -1;
+    this.momentum = this.options.momentum || -1;
 
     // whether a piece can move to different coords without capturing (e.g. pawn's forward move)
-    this.canReposition = options.canReposition || true;
+    this.canReposition = this.options.canReposition || true;
 
     // whether a piece can capture with this move (e.g. pawn's diagonal capture)
-    this.canCapture = options.canCapture || true;
+    this.canCapture = this.options.canCapture || true;
   }
 
   copy() {
@@ -30,6 +30,29 @@ class SquareGrid extends Board {
   constructor(size) {
     super()
     this.size = size;
+  }
+
+  initTiles(cellSize) {
+    let tiles = [];
+
+    for (let x = 0; x < this.size; x += 1) {
+      for (let y = 0; y < this.size; y += 1) {
+        let tile = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+
+        tile.setAttribute('x', x * cellSize + 'px');
+        tile.setAttribute('y', y * cellSize + 'px');
+        tile.setAttribute('width', cellSize + 'px');
+        tile.setAttribute('height', cellSize + 'px');
+
+        let twiddle = ((x + y) % 2) - 1;
+        tile.style.stroke = 'black';
+        tile.style.fill = `hsl(40, 80%, ${60 + twiddle * 40}%)`;
+
+        tiles.push(tile);
+      }
+    }
+
+    return tiles;
   }
 
   isValidCoords(coords) {
@@ -51,17 +74,17 @@ class SquareGrid extends Board {
     movements.forEach(move => {
       newMovements.push(move);
 
-      flip = move.copy()
+      let flip = move.copy()
       flip.vector.dx = -move.vector.dx;
       flip.vector.dy = -move.vector.dy;
       newMovements.push(flip);
 
-      rot = move.copy()
+      let rot = move.copy()
       rot.vector.dx = move.vector.dy;
       rot.vector.dy = -move.vector.dx;
       newMovements.push(rot);
 
-      rotinv = move.copy()
+      let rotinv = move.copy()
       rotinv.vector.dx = -move.vector.dy;
       rotinv.vector.dy = move.vector.dx;
       newMovements.push(rotinv);
@@ -133,14 +156,15 @@ class StandardChess {
     }
 
     let startFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
-        px = 0, py = 7,
+        px = -1, py = 7,
         piece = null,
         player = null;
 
-    startFEN.forEach(char => {
+    startFEN.split('').forEach(char => {
       if (char == '/') {
-        px = 0;
+        px = -1;
         py -= 1;
+        return;
       }
       else if (char == 'K' || char == 'k')
         piece = this.basePieces.king.copy()
@@ -158,10 +182,11 @@ class StandardChess {
         piece = this.basePieces.bpawn.copy()
       else {
         px += parseInt(char);
+        return;
       }
 
-
-      player = ('KQRBNP'.indexOf(char) > -1) ? 'white' : 'black'
+      px += 1;
+      player = ('KQRBNP'.indexOf(char) > -1) ? 'white' : 'black';
 
       this.pieces[player].push({
         piece: piece,
@@ -170,9 +195,19 @@ class StandardChess {
     })
   }
 
-  perform(player, piece, move) {
+  initGraphics(root) {
+    let board = document.createElementNS('http://www.w3.org/2000/svg', 'g'),
+        cellSize = parseInt(root.getAttribute('width')) / this.board.size;
 
+    this.board.initTiles(cellSize).forEach(tile => board.appendChild(tile));
+
+    root.appendChild(board);
   }
+
+  perform(player, piece, move) {}
 }
 
-game = new StandardChess()
+let game = new StandardChess(),
+    svg = document.getElementById('svg');
+
+game.initGraphics(svg)
