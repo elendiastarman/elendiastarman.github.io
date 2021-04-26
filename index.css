@@ -6,3 +6,13 @@ body {
 #tiles {
   display: block;
 }
+
+.bordered {
+  border: 1px solid #FFA;
+}
+
+.centered {
+  display: block;
+  margin: auto;
+  padding: 0;
+}
