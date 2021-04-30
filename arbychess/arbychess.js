@@ -172,13 +172,11 @@ class StandardChess extends Variant {
 
     // 2-square move
     this.basePieces.wpawn.specialMoves = (piece) => {
-      console.log(piece)
       return (piece.piece.history.length > 0) ? [] : [
         [piece.coords, new Move({dx: 0, dy: 1}, {momentum: 2, canCapture: false})],
       ];
     };
     this.basePieces.bpawn.specialMoves = (piece) => {
-      console.log(piece)
       return (piece.piece.history.length > 0) ? [] : [
         [piece.coords, new Move({dx: 0, dy: -1}, {momentum: 2, canCapture: false})],
       ];
@@ -230,7 +228,6 @@ class StandardChess extends Variant {
 
       px += 1;
       player = ('KQRBNP'.indexOf(char) > -1) ? 'white' : 'black';
-      console.log(player, piece)
 
       let instance = {
         piece: piece,
@@ -394,7 +391,6 @@ class StandardChess extends Variant {
     })
 
     this.addSpecialMoves(piece, seenCoords, validCoords, moveQueue);
-    console.log(moveQueue)
 
     let index = -1;
     while (index < moveQueue.length - 1) {
@@ -429,7 +425,7 @@ class StandardChess extends Variant {
       let occupier = this.board.cellMap[coordsKey].occupier,
           validAction = null;
 
-      if (occupier && move.canCapture) {
+      if (occupier && move.canCapture && occupier.player != piece.player) {
         validAction = {capture: true, victim: occupier}
 
         // currently, no pieces can move after capturing, but if they could, that'd be here
@@ -463,10 +459,8 @@ class StandardChess extends Variant {
   }
 
   addSpecialMoves(piece, seenCoords, validCoords, moveQueue) {
-    console.log(piece.piece.specialMoves)
     if (piece.piece.specialMoves)
       piece.piece.specialMoves(piece).forEach(move => moveQueue.push(move));
-    console.log(moveQueue)
   }
 
   rejectInvalidMoves(piece, seenCoords, validCoords, moveQueue) {
