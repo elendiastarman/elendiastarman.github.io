@@ -107,12 +107,16 @@ class Piece {
   constructor(name, movements) {
     this.name = name;
     this.movements = movements;
+    this.history = [];
   }
 
   copy() {
     let movesCopy = [];
     this.movements.forEach(move => movesCopy.push(move.copy()));
-    return new Piece(this.name, movesCopy);
+    let newCopy = new Piece(this.name, movesCopy);
+    if (this.specialMoves)
+      newCopy.specialMoves = this.specialMoves.bind(newCopy);
+    return newCopy;
   }
 }
 
@@ -122,8 +126,16 @@ class Player {
   }
 }
 
-class StandardChess {
+class Variant {
   constructor() {
+    this.history = [];
+  }
+}
+
+class StandardChess extends Variant {
+  constructor() {
+    super()
+
     this.board = new SquareGrid(8);
     this.basePieces = {
       king: new Piece('king', this.board.rotate4([
@@ -155,6 +167,24 @@ class StandardChess {
         new Move({dx: -1, dy: -1}, {momentum: 1, canPlace: false}),
       ]),
     };
+
+    /** special moves such as castling and en passant */
+
+    // 2-square move
+    this.basePieces.wpawn.specialMoves = (piece) => {
+      console.log(piece)
+      return (piece.piece.history.length > 0) ? [] : [
+        [piece.coords, new Move({dx: 0, dy: 1}, {momentum: 2, canCapture: false})],
+      ];
+    };
+    this.basePieces.bpawn.specialMoves = (piece) => {
+      console.log(piece)
+      return (piece.piece.history.length > 0) ? [] : [
+        [piece.coords, new Move({dx: 0, dy: -1}, {momentum: 2, canCapture: false})],
+      ];
+    };
+
+    /** */
 
     this.players = {
       white: new Player('white'),
@@ -200,6 +230,7 @@ class StandardChess {
 
       px += 1;
       player = ('KQRBNP'.indexOf(char) > -1) ? 'white' : 'black';
+      console.log(player, piece)
 
       let instance = {
         piece: piece,
@@ -270,9 +301,11 @@ class StandardChess {
           validAction = this.floating.validMoves[boardX + '_' + boardY];
 
       if (validAction) {
+        this.history.push(validAction);
+        this.floating.piece.piece.history.push(validAction);
+
         if (validAction.capture) {
-          let victim = this.board.cellMap[boardX + '_' + boardY].occupier;
-          victim.icon.remove();
+          validAction.victim.icon.remove();
         }
 
         // cycle to the next player
@@ -360,6 +393,9 @@ class StandardChess {
       moveQueue.push([piece.coords, move]);
     })
 
+    this.addSpecialMoves(piece, seenCoords, validCoords, moveQueue);
+    console.log(moveQueue)
+
     let index = -1;
     while (index < moveQueue.length - 1) {
       index += 1;
@@ -388,22 +424,21 @@ class StandardChess {
         seenCoords[coordsKey] = [];
       }
 
+      seenCoords[coordsKey].push(move);
+
       let occupier = this.board.cellMap[coordsKey].occupier,
           validAction = null;
 
-      if (occupier) {
-        // check capture ability
-        if (move.canCapture && piece.player != occupier.player)
-          validAction = {capture: true};
+      if (occupier && move.canCapture) {
+        validAction = {capture: true, victim: occupier}
 
-      } else {
-        if (move.canPlace)
-          validAction = {place: true};
+        // currently, no pieces can move after capturing, but if they could, that'd be here
+      }
 
-        // add further moves to the moveQueue if any
-        if (move.canTurn) {
-          piece.movements.forEach(move => moveQueue.push([newCoords, move]));
-        } else if (move.momentum == -1 || move.momentum > 1) {
+      if (!occupier && move.canPlace) {
+        validAction = {place: true}
+
+        if (move.momentum == -1 || move.momentum > 1) {
           let nextMove = move.copy();
           if (move.momentum > 1)
             nextMove.momentum -= 1;
@@ -412,12 +447,35 @@ class StandardChess {
         }
       }
 
-      seenCoords[coordsKey].push(move);
+      if (validAction && move.canTurn) {
+        validAction.turn = true;
+        piece.movements.forEach(move => moveQueue.push([newCoords, move]));
+      }
+
+
       if (validAction)
         validCoords[coordsKey] = validAction;
     }
 
+    this.rejectInvalidMoves(piece, seenCoords, validCoords, moveQueue);
+
     return validCoords;
+  }
+
+  addSpecialMoves(piece, seenCoords, validCoords, moveQueue) {
+    console.log(piece.piece.specialMoves)
+    if (piece.piece.specialMoves)
+      piece.piece.specialMoves(piece).forEach(move => moveQueue.push(move));
+    console.log(moveQueue)
+  }
+
+  rejectInvalidMoves(piece, seenCoords, validCoords, moveQueue) {
+    if (piece.piece.name == 'king') {
+      // check
+      // castle through check
+    } else {
+      // king is in check
+    }
   }
 
   perform(player, piece, move) {}
