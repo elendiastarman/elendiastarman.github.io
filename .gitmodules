@@ -1,0 +1,3 @@
+[submodule "arbychessjs"]
+	path = arbychessjs
+	url = https://github.com/elendiastarman/arbychessjs
