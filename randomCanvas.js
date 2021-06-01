@@ -26,16 +26,23 @@ class Renderer {
     // this does interesting stuff calculat-...calculatorally?
     this.imgdata = ctx.getImageData(0, 0, canvas.width, canvas.height)
     let toIndex = (x, y) => x + y * canvas.width,
-        newData = this.imgdata;
+        newData = this.imgdata,
+        rando = 0,
+        offset = (Math.sqrt(5) - 1) / 2;
 
     for (let y = 0; y < canvas.height; y += 1) {    
       for (let x = 0; x < canvas.width; x += 1) {
         let index = toIndex(x, y)
-        this.data[index] += Math.random();
+
+        rando += offset
+        if (rando > 1)
+          rando -= 1
+
+        this.data[index] += rando / 1;
+        newData.data[4 * index + 0] = this.data[index];
         newData.data[4 * index + 1] = this.data[index];
         newData.data[4 * index + 2] = this.data[index];
-        newData.data[4 * index + 3] = this.data[index];
-        newData.data[4 * index + 4] = this.data[index];
+        newData.data[4 * index + 3] = 255;
       }
     }
 
@@ -47,7 +54,6 @@ class Renderer {
   }
 
   renderLoop() {
-    console.log('halt', this.halt)
     if (!this.halt)
       window.requestAnimationFrame(this.renderLoop.bind(this))
 
