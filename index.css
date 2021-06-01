@@ -16,3 +16,7 @@ body {
   margin: auto;
   padding: 0;
 }
+
+.textcentered {
+  text-align: center;
+}
