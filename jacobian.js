@@ -15,7 +15,7 @@ class Renderer {
   }
 
   render(funcDef) {
-    let func = new Function('x', 'y', 'x2', 'y2', 'u', 'v', funcDef)
+    let func = new Function('x', 'y', 'x2', 'y2', 'w', 'u', 'v', funcDef)
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -34,7 +34,7 @@ class Renderer {
             u = x2 / w,
             v = y2 / w;
 
-        let [tx, ty] = func(x, y, x2, y2, u, v)
+        let [tx, ty] = func(x, y, x2, y2, w, u, v)
 
         // let ang = Math.floor(360 * Math.random())
         let ang = 180 * Math.atan2(ty, tx) / Math.PI

@@ -8,13 +8,20 @@
       <h3>OLD HIGH SCHOOL STUFF</h3>
     </div>
 
-    <p class="textcentered">f(x, y, x2, y2, u, v) = </p>
+    <p class="textcentered">f(x, y, x2, y2, w, u, v) = </p>
     <textarea id="functionDef" style="width: 300; height: 100;" class="centered">return [u, v]</textarea>
     <button id="renderButton" class="centered">Render</button>
 
     <br/>
 
     <canvas id="canvas" width="500px" height="500px" class="centered bordered"></canvas>
+
+    <br/>
+    
+    <p class="textcentered">x, y are the pixel coords</p>
+    <p class="textcentered">x2, y2 are the pixel coords with respect to the center</p>
+    <p class="textcentered">w is the magnitude of the vector [x2, y2]</p>
+    <p class="textcentered">u, v are the corresponding unit vector coords</p>
 
     <script src="jacobian.js"></script>
   </body>
