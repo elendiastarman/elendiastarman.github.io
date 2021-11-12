@@ -1,0 +1,206 @@
+<html>
+  <head></head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+
+  <script id="vertex-shader-2d" type="text/javascript">
+    var vertexShaderSource = `
+    precision mediump float;
+
+    // an attribute will receive data from a buffer
+    attribute vec2 a_position;
+    uniform vec2 u_resolution;
+
+    // all shaders have a main function
+    void main() {
+      vec2 clipSpace = (a_position / u_resolution) * 2. - 1.;  // [-1, 1]
+
+      // gl_Position is a special variable a vertex shader
+      // is responsible for setting
+      gl_Position = vec4(clipSpace, 0, 1);
+    }
+
+    `
+  </script>
+
+  <script id="fragment-shader-2d" type="text/javascript">
+    var fragmentShaderSource = `
+
+    // fragment shaders don't have a default precision so we need
+    // to pick one. mediump is a good default
+    precision mediump float;
+    uniform vec4 u_color;
+    uniform vec2 u_offset;
+    uniform vec2 u_resolution;
+
+    void main() {
+      // gl_FragColor is a special variable a fragment shader
+      // is responsible for setting
+      // gl_FragColor = u_color;
+
+      // float scale = 30.;
+      // vec4 tweak = mod(gl_FragCoord + vec4(u_offset, 0, 0), scale) / scale;
+      // gl_FragColor = u_color + tweak;
+
+      vec2 c = ((gl_FragCoord.xy / u_resolution) * 2. - 1.) * 1.5;
+      vec2 p = u_offset * 2. - 1.;
+
+      int last;
+      const int num = 50;
+      for (int i = 0; i < num; i += 1) {
+        last = i;
+        if (p.x * p.x + p.y * p.y > 2.) {
+          break;
+        }
+        p = vec2(p.x * p.x - p.y * p.y, 2. * p.x * p.y) + c;
+      }
+
+      float ratio = float(last) / float(num);
+      gl_FragColor = vec4(ratio, 1. - ratio, 0, 1);
+    }
+
+    `
+  </script>
+
+  <script id="implementation" type="text/javascript">
+    var canvas = document.querySelector('#canvas')
+    canvas.style = "border: 1px solid black;"
+
+    var gl = canvas.getContext('webgl')
+    if (!gl) {
+      console.log('ERROR: webgl not supported, sorry')
+      throw Error('WebGL is not supported, sorry')
+    }
+
+    console.log('Hooray!!')
+
+    function createShader(gl, type, source) {
+      // gl == the context
+      // type == vertex vs fragment
+      // source == the code itself
+      var shader = gl.createShader(type);
+      gl.shaderSource(shader, source)
+      gl.compileShader(shader)
+      var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
+      console.log('source', source)
+      console.log('createShader success', success)
+      if (success)
+        return shader
+
+      // failure -> log the error, die
+      console.log(gl.getShaderInfoLog(shader))
+      gl.deleteShader(shader)
+    }
+
+    // var vertexShaderSource = document.querySelector('#vertex-shader-2d').text
+    // var fragmentShaderSource = document.querySelector('#fragment-shader-2d').text
+
+    var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+
+    // console.log(vertexShader, fragmentShader)
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      var program = gl.createProgram()
+      gl.attachShader(program, vertexShader)
+      gl.attachShader(program, fragmentShader)
+      gl.linkProgram(program)
+
+      var success = gl.getProgramParameter(program, gl.LINK_STATUS)
+      if (success)
+        return program
+
+      // failure -> log the error, die
+      console.log(gl.getProgramInfoLog(program))
+      gl.deleteProgram(program)
+    }
+
+    var program = createProgram(gl, vertexShader, fragmentShader)
+
+    // https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html
+    // > Now that we've created a GLSL program on the GPU we need to supply data to it.
+
+    var positionAttributeLocation = gl.getAttribLocation(program, 'a_position')
+    var resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution')
+    var colorUniformLocation = gl.getUniformLocation(program, 'u_color')
+    var offsetUniformLocation = gl.getUniformLocation(program, 'u_offset')
+
+    var positionBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+
+    // // ^^^ initialization code
+    // // vvv runtime code
+
+    var width = 500
+    var height = 500
+
+    canvas.width = width
+    canvas.height = height
+
+    // display screen corners
+    var points = [
+      0, 0,
+      width, 0,
+      0, height,
+      width, 0,
+      0, height,
+      width, height,
+    ]
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW)
+
+    gl.viewport(0, 0, width, height)
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.useProgram(program)
+
+    // > Next we need to tell WebGL how to take data from the buffer we setup above and supply it to the attribute in the shader.
+    gl.enableVertexAttribArray(positionAttributeLocation)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+
+    // >>> Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset)
+    // > A hidden part of gl.vertexAttribPointer is that it binds the current ARRAY_BUFFER to the attribute.
+    // <<<
+
+    gl.uniform2f(resolutionUniformLocation, width, height)
+    gl.uniform4f(colorUniformLocation, Math.random(), Math.random(), Math.random(), 1)
+
+    // > After all that we can finally ask WebGL to execute our GLSL program.
+    // me: goodness *gracious!* ... well, okay, not actually that bad
+
+    var primitiveType = gl.TRIANGLES
+    var offset = 0
+    var count = points.length / 2
+    gl.drawArrays(primitiveType, offset, count)
+    // > Because the count is 3 this will execute our vertex shader 3 times.
+    // on each run, consuming one value each from positionBuffer to a_position.x and a_position.y
+
+    var mousePos = {x: 0, y: 0}
+    canvas.addEventListener('mousemove', event => {
+      mousePos.x = event.x
+      mousePos.y = event.y
+      mousePos.nx = event.x / width
+      mousePos.ny = event.y / height
+    })
+
+    function renderFrame(time) {
+      let twiddle = 0.05
+      gl.drawArrays(primitiveType, offset, count)
+      gl.uniform2f(offsetUniformLocation, mousePos.nx, mousePos.ny)
+      //
+      requestAnimationFrame(renderFrame)
+    }
+    requestAnimationFrame(renderFrame)
+
+
+
+  </script>
+
+
+</html>
